@@ -9,9 +9,9 @@ from sklearn.ensemble import VotingClassifier
 from sklearn.metrics import accuracy_score
 from requests_html import HTMLSession
 from nltk.corpus import stopwords
+from time import time, sleep
 from sklearn import svm
-from time import time
-import random
+import pandas as pd
 import nltk
 import csv
 import re
@@ -63,7 +63,7 @@ def scrape(url):
         writer.writerow([comment, star])
 
     fw.close()
-    time.sleep(random.randint(3, 10))
+    sleep(.75)
     pagination(r)
 
     r.close()
@@ -89,12 +89,15 @@ def loadData(file):
     :return: reviews and labels
     """
     reviews, labels = [], []
-    f = open(file)
-    for line in f:
-        review, rating = line.strip().split('\t')
-        reviews.append(review.lower())
-        labels.append(int(rating))
-    f.close()
+    f = pd.read_csv(file, header=None)
+    for i in range(len(f)):
+        reviews.append(f[0][i].replace('\n', ''))
+        rate = f[1][i].strip()
+        rate = int(rate[0])
+        if rate >= 3:
+            labels.append(1)
+        else:
+            labels.append(0)
     return reviews, labels
 
 
@@ -107,7 +110,7 @@ def Filter(reviews):
     ans = []
     for review in reviews:
         temp = []
-        review = re.sub(r'[^\w\s]', ' ', review)
+        # review = re.sub(r'[^\w\s]', ' ', review)
         review = re.sub('[^a-z]', ' ', review)  # replace all non-letter characters
 
         ps = nltk.stem.porter.PorterStemmer()
@@ -149,6 +152,7 @@ def lgr_classifier(counts_train, lab_train):
     clf = LogisticRegression(solver='liblinear')
     LGR_grid = [{'penalty': ['l1', 'l2'], 'C': [0.5, 1, 1.5, 2, 3, 5, 10]}]
     gridsearchLGR = GridSearchCV(clf, LGR_grid, cv=5)
+    # LGR_fit, LGR_score = gridsearchLGR.fit(counts_train, lab_train), gridsearchLGR.score(counts_train)
     return gridsearchLGR.fit(counts_train, lab_train)
 
 
@@ -235,9 +239,9 @@ if __name__ == "__main__":
     print('start training...')
 
     # load the training set(reviews and labels)
-    rev_train, lab_train = loadData('/Users/yaoyuchen/Desktop/BIA660/week9/reviews_train.txt')
+    rev_train, lab_train = loadData('D:\\sunjiayi\\Stevens_Studying_File\\629\\AmazonCommentsAnalysis\\train.csv')
     # load the testing set(rewiews and labels)
-    rev_test, lab_test = loadData('/Users/yaoyuchen/Desktop/BIA660/week9/reviews_test.txt')
+    rev_test, lab_test = loadData('D:\\sunjiayi\\Stevens_Studying_File\\629\\AmazonCommentsAnalysis\\test.csv')
 
     # Correct wrong expressions
     rev_train = Filter(rev_train)
